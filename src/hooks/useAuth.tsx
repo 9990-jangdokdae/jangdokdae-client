@@ -11,7 +11,7 @@ import {
 import { flushSync } from "react-dom";
 import type { User } from "@/types/jangdokdae";
 import { LoginModal } from "@/app/auth/LoginModal";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, apiFetchJson } from "@/lib/api";
 
 const USER_CACHE_KEY = "jdkd_auth_user";
 
@@ -55,12 +55,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const bfcacheControllerRef = useRef<AbortController | null>(null);
 
-  // 마운트 후 서버에서 실제 인증 상태 재검증
+  // 마운트 후 서버에서 실제 인증 상태 재검증 (토큰 갱신 포함)
   useEffect(() => {
     const controller = new AbortController();
-    apiFetch("/api/v1/auth/me", { signal: controller.signal })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: User | null) => {
+    apiFetchJson<User>("/api/v1/auth/me", { signal: controller.signal })
+      .then((data: User) => {
         updateUser(data);
         setIsAuthReady(true);
       })
@@ -88,9 +87,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setShowModal(false);
       });
 
-      apiFetch("/api/v1/auth/me", { signal: controller.signal })
-        .then((r) => (r.ok ? r.json() : null))
-        .then((data: User | null) => updateUser(data))
+      apiFetchJson<User>("/api/v1/auth/me", { signal: controller.signal })
+        .then((data: User) => updateUser(data))
         .catch((err: unknown) => {
           if (err instanceof Error && err.name !== "AbortError") updateUser(null);
         });
