@@ -221,7 +221,7 @@ function RelatedCompanyItem({ company }: { company: RelatedCompany }) {
     : "text-[#d14b3f]";
 
   return (
-    <div className="rounded-lg border border-[#e8dfd8] bg-white px-4 py-2.5">
+    <div className="rounded-lg border border-[#e8dfd8] bg-[#fefaf7] px-4 py-2.5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-[14px] font-semibold text-[#1d1d1f]">{company.name}</p>
@@ -285,7 +285,7 @@ function MarketItem({
   );
 
   return (
-    <div className="rounded-lg border border-[#f1d2c6] bg-[#fff7f3] px-4 py-2.5">
+    <div className="rounded-lg border border-[#f1d2c6] bg-[#fefaf7] px-4 py-2.5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
           <span className="grid h-7 w-7 place-items-center rounded-full bg-[#fff1ec] text-[#c96442]">
