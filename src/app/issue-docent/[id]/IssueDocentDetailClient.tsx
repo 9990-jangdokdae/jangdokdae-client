@@ -204,7 +204,7 @@ function AnalysisCard({
 }) {
   return (
     <article className="rounded-lg border border-[#e0e0e0] bg-white px-6 py-6">
-      <h2 className="ko-title text-[26px] font-semibold tracking-[-0.02em] text-[#1d1d1f]">{section.title}</h2>
+      <h2 className="ko-title text-[26px] tracking-[-0.02em] text-[#1d1d1f]" style={{ fontWeight: 500 }}>{section.title}</h2>
       <InlineTermsText
         text={section.summary}
         terms={terms}
@@ -477,7 +477,7 @@ export function IssueDocentDetailClient({
           <article className="min-w-0 xl:max-w-[770px]">
             <header className="border-b border-[#e0e0e0] pb-8">
               <div className="flex items-start justify-between gap-6">
-                <h1 className="ko-title text-[34px] font-normal leading-[1.15] text-[#1d1d1f]">
+                <h1 className="ko-title text-[34px] leading-[1.15] text-[#1d1d1f]" style={{ fontWeight: 600 }}>
                   {issueDocent.title}
                 </h1>
                 <button
@@ -521,7 +521,7 @@ export function IssueDocentDetailClient({
             )}
 
             <section className="w-full border-t border-[#e0e0e0] py-8">
-              <h2 className="text-[26px] font-semibold text-[#1d1d1f]">퀴즈</h2>
+              <h2 className="text-[26px] text-[#1d1d1f]" style={{ fontWeight: 500 }}>퀴즈</h2>
               <p className="mt-2 text-[14px] text-[#7a7a7a]">보기를 누르면 바로 채점됩니다.</p>
               <div className="mt-5 grid gap-4">
                 {issueDocent.quizzes.map((quiz) => (

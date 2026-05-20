@@ -23,7 +23,7 @@ function IssueDocentFeedRow({ item }: { item: IssueDocentListItem }) {
       className="group block border-b border-[#e0e0e0] p-5 transition hover:bg-[#fbfcfd]"
       href={`/issue-docent/${item.id}`}
     >
-      <h2 className="ko-title text-[20px] font-semibold leading-7 text-[#1d1d1f]">
+      <h2 className="ko-title text-[20px] leading-7 text-[#1d1d1f]" style={{ fontWeight: 600 }}>
         {item.title}
       </h2>
       <p className="ko-body mt-2 line-clamp-2 text-[15px] leading-6 text-[#7a7a7a]">
