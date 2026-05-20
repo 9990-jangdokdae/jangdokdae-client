@@ -8,14 +8,7 @@
  * - 로그아웃: localStorage 클리어 (공유 기기 보호)
  */
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useSyncExternalStore,
-} from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { InterestProfile } from "@/types/jangdokdae";
 import { apiFetch } from "@/lib/api";
 import { defaultInterestProfile, interestStorageKey } from "@/lib/jangdokdaeData";
@@ -28,76 +21,33 @@ interface InterestProfileContextValue {
 }
 
 const InterestProfileContext = createContext<InterestProfileContextValue | null>(null);
-const interestProfileChangedEvent = "jangdokdae.interest-profile.changed";
-let cachedProfileJson: string | null = null;
-let cachedProfileSnapshot: InterestProfile = defaultInterestProfile;
 
-function syncCachedProfileFromStorage(): boolean {
+function readLocalProfile(): InterestProfile {
   try {
     const stored = window.localStorage.getItem(interestStorageKey);
-    if (!stored) {
-      const changed = cachedProfileJson !== null || cachedProfileSnapshot !== defaultInterestProfile;
-      cachedProfileJson = null;
-      cachedProfileSnapshot = defaultInterestProfile;
-      return changed;
-    }
-
-    if (stored === cachedProfileJson) return false;
-
-    cachedProfileJson = stored;
-    cachedProfileSnapshot = JSON.parse(stored) as InterestProfile;
-    return true;
+    if (stored) return JSON.parse(stored) as InterestProfile;
   } catch (err) {
     console.warn("[InterestProfile] localStorage 파싱 실패:", err);
   }
-  return false;
-}
-
-function getCachedProfileSnapshot(): InterestProfile {
-  return cachedProfileSnapshot;
+  return defaultInterestProfile;
 }
 
 function writeLocalProfile(profile: InterestProfile): void {
-  const nextProfileJson = JSON.stringify(profile);
-  cachedProfileJson = nextProfileJson;
-  cachedProfileSnapshot = profile;
-  window.localStorage.setItem(interestStorageKey, nextProfileJson);
-  window.dispatchEvent(new Event(interestProfileChangedEvent));
+  window.localStorage.setItem(interestStorageKey, JSON.stringify(profile));
 }
 
 function clearLocalProfile(): void {
-  cachedProfileJson = null;
-  cachedProfileSnapshot = defaultInterestProfile;
   window.localStorage.removeItem(interestStorageKey);
-  window.dispatchEvent(new Event(interestProfileChangedEvent));
-}
-
-function subscribeToLocalProfile(onStoreChange: () => void) {
-  const handleStorage = (event: StorageEvent) => {
-    if (event.key === interestStorageKey && syncCachedProfileFromStorage()) onStoreChange();
-  };
-
-  window.addEventListener(interestProfileChangedEvent, onStoreChange);
-  window.addEventListener("storage", handleStorage);
-  if (syncCachedProfileFromStorage()) queueMicrotask(onStoreChange);
-
-  return () => {
-    window.removeEventListener(interestProfileChangedEvent, onStoreChange);
-    window.removeEventListener("storage", handleStorage);
-  };
 }
 
 export function InterestProfileProvider({ children }: { children: React.ReactNode }) {
-  const { user, isLoggedIn, isLoading: authLoading } = useAuth();
-  const profile = useSyncExternalStore(
-    subscribeToLocalProfile,
-    getCachedProfileSnapshot,
-    () => defaultInterestProfile,
-  );
+  const { user, isLoggedIn, isAuthReady } = useAuth();
+  const [profile, setProfile] = useState<InterestProfile>(defaultInterestProfile);
+  const [isLoading, setIsLoading] = useState(true);
   const prevIsLoggedIn = useRef<boolean | null>(null);
 
   useEffect(() => {
-    if (authLoading) return;
+    if (!isAuthReady) return;
 
     const prev = prevIsLoggedIn.current;
     prevIsLoggedIn.current = isLoggedIn;
@@ -107,12 +57,16 @@ export function InterestProfileProvider({ children }: { children: React.ReactNod
         sectors: user.interest_sectors,
         companies: user.interest_companies,
       };
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setProfile(serverProfile);
       writeLocalProfile(serverProfile);
     } else {
       // 로그아웃 전환 시 localStorage 클리어
       if (prev === true) clearLocalProfile();
+      setProfile(readLocalProfile());
     }
-  }, [isLoggedIn, authLoading, user]);
+    setIsLoading(false);
+  }, [isLoggedIn, user, isAuthReady]);
 
   /**
    * 관심 프로필을 저장한다.
@@ -120,6 +74,7 @@ export function InterestProfileProvider({ children }: { children: React.ReactNod
    */
   const saveProfile = useCallback(
     async (next: InterestProfile): Promise<void> => {
+      setProfile(next);
       writeLocalProfile(next);
 
       if (isLoggedIn) {
@@ -140,7 +95,7 @@ export function InterestProfileProvider({ children }: { children: React.ReactNod
   );
 
   return (
-    <InterestProfileContext.Provider value={{ profile, saveProfile, isLoading: authLoading }}>
+    <InterestProfileContext.Provider value={{ profile, saveProfile, isLoading }}>
       {children}
     </InterestProfileContext.Provider>
   );

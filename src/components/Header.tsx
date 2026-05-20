@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Bell, Search } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -16,7 +16,7 @@ const navItems = ["오늘의 독해", "이슈", "마켓 정보"] as const;
 const navHrefs = ["/", "/issue-docent", "/market/indices"] as const;
 
 export function Header({ activeIndex }: { activeIndex: 0 | 1 | 2 }) {
-  const { isLoggedIn, isLoading, user, openLoginModal, logout } = useAuth();
+  const { isLoggedIn, user, openLoginModal, logout } = useAuth();
   const { profile, saveProfile } = useInterestProfile();
 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -24,6 +24,17 @@ export function Header({ activeIndex }: { activeIndex: 0 | 1 | 2 }) {
   const [draftProfile, setDraftProfile] = useState<InterestProfile>(ONBOARDING_INITIAL_PROFILE);
 
   const hasInterests = profile.sectors.length > 0 || profile.companies.length > 0;
+
+  // bfcache 복원 시 로컬 모달 상태 리셋
+  useEffect(() => {
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (!e.persisted) return;
+      setShowLogoutConfirm(false);
+      setShowOnboarding(false);
+    };
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, []);
 
   const openOnboarding = () => {
     setDraftProfile(hasInterests ? profile : ONBOARDING_INITIAL_PROFILE);
@@ -60,9 +71,7 @@ export function Header({ activeIndex }: { activeIndex: 0 | 1 | 2 }) {
             이슈, 종목, 용어 검색
           </button>
           <Bell className="ml-auto h-5 w-5 text-[#7a7a7a]" />
-          {isLoading ? (
-            <div className="ml-7 h-10 w-28 animate-pulse rounded-lg bg-[#f0f0f0]" />
-          ) : isLoggedIn ? (
+          {isLoggedIn ? (
             <div className="ml-7">
               <UserMenuDropdown
                 nickname={user?.nickname ?? "사용자"}

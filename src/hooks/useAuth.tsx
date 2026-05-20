@@ -1,53 +1,115 @@
-/**
- * 로그인 상태 관리 훅 및 Provider
- *
- *
- * 사용법:
- *   const { user, isLoggedIn, openLoginModal, logout } = useAuth();
- */
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import type { User } from "@/types/jangdokdae";
 import { LoginModal } from "@/app/auth/LoginModal";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, apiFetchJson } from "@/lib/api";
+
+const USER_CACHE_KEY = "jdkd_auth_user";
+
+function readCachedUser(): User | null {
+  try {
+    const raw = localStorage.getItem(USER_CACHE_KEY);
+    return raw ? (JSON.parse(raw) as User) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedUser(user: User | null): void {
+  try {
+    if (user) localStorage.setItem(USER_CACHE_KEY, JSON.stringify(user));
+    else localStorage.removeItem(USER_CACHE_KEY);
+  } catch {}
+}
 
 interface AuthContextValue {
   user: User | null;
   isLoggedIn: boolean;
-  isLoading: boolean;
+  isAuthReady: boolean;
   openLoginModal: () => void;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-/**
- * 앱 전체에 로그인 상태를 공급하는 Provider.
- * app/layout.tsx 최상단에 마운트해 모든 페이지에서 useAuth()를 사용
- *
- * - 마운트 시: /api/v1/auth/me 호출 → JWT 쿠키로 현재 사용자 확인
- * - 로그아웃 시: /api/v1/auth/logout 호출 → 쿠키 삭제 후 상태 초기화
- * - 로그인 모달: showModal 상태로 LoginModal 표시 여부 제어
- */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  // null로 시작해 SSR·hydration 불일치를 방지하고, useLayoutEffect에서 즉시 복원
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthReady, setIsAuthReady] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [securityAlert, setSecurityAlert] = useState<string | null>(null);
 
-  useEffect(() => {
-    apiFetch("/api/v1/auth/me")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: User | null) => setUser(data))
-      .catch((err) => console.error("[Auth] /api/v1/auth/me 실패:", err))
-      .finally(() => setIsLoading(false));
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useLayoutEffect(() => { setUser(readCachedUser()); }, []);
+
+  const updateUser = useCallback((data: User | null) => {
+    setUser(data);
+    writeCachedUser(data);
   }, []);
 
-  /** 백엔드 /api/v1/auth/logout을 호출해 httpOnly 쿠키를 삭제하고 로컬 상태를 초기화 */
-  const logout = async () => {
-    await apiFetch("/api/v1/auth/logout", { method: "POST" })
-      .catch((err) => console.error("[Auth] /api/v1/auth/logout 실패:", err));
-    setUser(null);
+  const bfcacheControllerRef = useRef<AbortController | null>(null);
+
+  // 마운트 후 서버에서 실제 인증 상태 재검증 (토큰 갱신 포함)
+  useEffect(() => {
+    const controller = new AbortController();
+    apiFetchJson<User>("/api/v1/auth/me", { signal: controller.signal })
+      .then((data: User) => {
+        updateUser(data);
+        setIsAuthReady(true);
+      })
+      .catch((err: unknown) => {
+        if (err instanceof Error && err.name === "AbortError") return;
+        updateUser(null);
+        setIsAuthReady(true);
+      });
+    return () => controller.abort();
+  }, [updateUser]);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      setSecurityAlert((e as CustomEvent<string>).detail);
+    };
+    window.addEventListener("auth:security-threat", handler);
+    return () => window.removeEventListener("auth:security-threat", handler);
+  }, []);
+
+  // bfcache 복원 시: localStorage에서 즉시 표시 후 백그라운드 재검증
+  useEffect(() => {
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (!e.persisted) return;
+
+      // 이전 in-flight bfcache 재검증 요청 취소
+      bfcacheControllerRef.current?.abort();
+      const controller = new AbortController();
+      bfcacheControllerRef.current = controller;
+
+      setUser(readCachedUser());
+      setShowModal(false);
+
+      apiFetchJson<User>("/api/v1/auth/me", { signal: controller.signal })
+        .then((data: User) => updateUser(data))
+        .catch((err: unknown) => {
+          if (err instanceof Error && err.name !== "AbortError") updateUser(null);
+        });
+    };
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, [updateUser]);
+
+  const logout = () => {
+    updateUser(null);
+    apiFetch("/api/v1/auth/logout", { method: "POST" }).catch((err) =>
+      console.error("[Auth] /api/v1/auth/logout 실패:", err),
+    );
   };
 
   return (
@@ -55,28 +117,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         user,
         isLoggedIn: user !== null,
-        isLoading,
+        isAuthReady,
         openLoginModal: () => setShowModal(true),
         logout,
       }}
     >
       {children}
       {showModal && <LoginModal onClose={() => setShowModal(false)} />}
+      {securityAlert && (
+        <div
+          role="alert"
+          className="fixed left-1/2 top-4 z-[100] flex -translate-x-1/2 items-center gap-3 rounded-lg bg-red-600 px-4 py-3 text-sm text-white shadow-lg"
+        >
+          <span>{securityAlert}</span>
+          <button
+            type="button"
+            aria-label="닫기"
+            className="shrink-0 opacity-70 hover:opacity-100"
+            onClick={() => setSecurityAlert(null)}
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </AuthContext.Provider>
   );
 }
 
-/**
- * 로그인 상태를 읽는 훅.
- * AuthProvider 하위 컴포넌트에서만 호출 가능.
- *
- * 반환값:
- *   user          - 로그인한 사용자 정보 (비로그인 시 null)
- *   isLoggedIn    - 로그인 여부
- *   isLoading     - /api/v1/auth/me 응답 대기 중 여부
- *   openLoginModal - 로그인 모달 열기
- *   logout        - 로그아웃
- */
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
