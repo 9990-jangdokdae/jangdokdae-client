@@ -221,12 +221,12 @@ function RelatedCompanyItem({ company }: { company: RelatedCompany }) {
     : "text-[#d14b3f]";
 
   return (
-    <div className="rounded-lg border border-[#e0e0e0] bg-[#fbfcfd] px-4 py-2.5">
+    <div className="rounded-lg border border-[#e8dfd8] bg-white px-4 py-2.5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-[14px] font-semibold text-[#5f4032]">{company.name}</p>
+          <p className="text-[14px] font-semibold text-[#1d1d1f]">{company.name}</p>
           {(company.ticker || company.subtitle) && (
-            <p className="mt-0.5 break-keep text-[12px] leading-5 text-[#7a5542]">
+            <p className="mt-0.5 break-keep text-[12px] leading-5 text-[#1d1d1f]">
               {[company.ticker, company.subtitle].filter(Boolean).join(" · ")}
             </p>
           )}
