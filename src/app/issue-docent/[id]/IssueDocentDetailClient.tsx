@@ -218,7 +218,7 @@ function AnalysisCard({
 
 function RelatedCompanyItem({ company }: { company: RelatedCompany }) {
   return (
-    <div className="rounded-lg border border-[#e0e0e0] bg-[#fbfcfd] px-4 py-3">
+    <div className="rounded-lg border border-[#e0e0e0] bg-[#fbfcfd] px-4 py-2.5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-[14px] font-semibold text-[#1d1d1f]">{company.name}</p>
@@ -249,7 +249,7 @@ function MetricItem({
   onOpenTerm: (term: TermDefinition) => void;
 }) {
   return (
-    <div className="rounded-lg border border-[#e0e0e0] bg-white px-4 py-3">
+    <div className="rounded-lg border border-[#e0e0e0] bg-white px-4 py-2.5">
       <p className="text-[12px] font-semibold text-[#7a7a7a]">{metric.label}</p>
       <p className="mt-1 text-[17px] font-semibold text-[#1d1d1f]">{metric.value}</p>
       {metric.emphasis && (
@@ -282,7 +282,7 @@ function MarketItem({
   );
 
   return (
-    <div className="rounded-lg border border-[#e0e0e0] bg-white px-4 py-3">
+    <div className="rounded-lg border border-[#e0e0e0] bg-white px-4 py-2.5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
           <span className="grid h-7 w-7 place-items-center rounded-full bg-[#f7f8fa] text-[#2d6cdf]">
@@ -324,9 +324,9 @@ function SidebarCard({
 }) {
   return (
     <aside className="sticky top-24 self-start xl:w-[380px]">
-      <div className="space-y-3">
+      <div className="space-y-2">
         {companies.length > 0 && (
-          <div className="grid gap-2.5">
+          <div className="grid gap-2">
             {companies.map((company) => (
               <RelatedCompanyItem
                 key={`${company.name}-${company.ticker ?? ""}`}
@@ -337,7 +337,7 @@ function SidebarCard({
         )}
 
         {markets.length > 0 && (
-          <div className="grid gap-2.5">
+          <div className="grid gap-2">
             {markets.map((market) => (
               <MarketItem
                 key={`${market.name}-${market.summary}`}
@@ -350,7 +350,7 @@ function SidebarCard({
         )}
 
         {metrics.length > 0 && (
-          <div className="grid gap-2.5">
+          <div className="grid gap-2">
             {metrics.map((metric) => (
               <MetricItem
                 key={`${metric.label}-${metric.value}`}
