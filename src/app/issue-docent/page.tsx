@@ -187,29 +187,6 @@ export default async function IssueDocentPage({ searchParams }: IssueDocentPageP
     <div className="min-h-screen min-w-[1376px] bg-white text-[#1d1d1f]">
       <Header activeIndex={1} searchQuery={searchQuery} />
       <main className="mx-[100px] w-[1176px] bg-white pb-16 pt-4">
-        <div className="flex items-end justify-between gap-6">
-          <div>
-            <h1 className="text-[28px] font-semibold">이슈 도슨트</h1>
-            {searchQuery ? (
-              <p className="mt-2 text-[14px] text-[#7a7a7a]">
-                <span className="font-semibold text-[#1d1d1f]">“{searchQuery}”</span> 검색 결과
-                · 총 {response.total.toLocaleString("ko-KR")}개 이슈
-              </p>
-            ) : (
-              <p className="mt-2 text-[14px] text-[#7a7a7a]">
-                총 {response.total.toLocaleString("ko-KR")}개 이슈
-              </p>
-            )}
-          </div>
-          {searchQuery && (
-            <Link
-              className="rounded-md border border-[#e0e0e0] px-4 py-2 text-[14px] font-semibold text-[#1d1d1f] transition hover:border-[#c96442] hover:text-[#b65335]"
-              href="/issue-docent"
-            >
-              전체 이슈 보기
-            </Link>
-          )}
-        </div>
         <div className="mt-6">
           {response.items.length > 0 ? (
             response.items.map((item) => <IssueDocentFeedRow key={item.id} item={item} />)
