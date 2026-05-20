@@ -41,13 +41,13 @@ function clearLocalProfile(): void {
 }
 
 export function InterestProfileProvider({ children }: { children: React.ReactNode }) {
-  const { user, isLoggedIn, isLoading: authLoading } = useAuth();
+  const { user, isLoggedIn, isAuthReady } = useAuth();
   const [profile, setProfile] = useState<InterestProfile>(defaultInterestProfile);
   const [isLoading, setIsLoading] = useState(true);
   const prevIsLoggedIn = useRef<boolean | null>(null);
 
   useEffect(() => {
-    if (authLoading) return;
+    if (!isAuthReady) return;
 
     const prev = prevIsLoggedIn.current;
     prevIsLoggedIn.current = isLoggedIn;
@@ -57,6 +57,7 @@ export function InterestProfileProvider({ children }: { children: React.ReactNod
         sectors: user.interest_sectors,
         companies: user.interest_companies,
       };
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setProfile(serverProfile);
       writeLocalProfile(serverProfile);
     } else {
@@ -65,7 +66,7 @@ export function InterestProfileProvider({ children }: { children: React.ReactNod
       setProfile(readLocalProfile());
     }
     setIsLoading(false);
-  }, [isLoggedIn, authLoading, user]);
+  }, [isLoggedIn, user, isAuthReady]);
 
   /**
    * 관심 프로필을 저장한다.
