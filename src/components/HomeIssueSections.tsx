@@ -1,12 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { useInterestProfile } from "@/hooks/useInterestProfile";
 import { matchesInterest } from "@/lib/issue-match";
+import { getIssueDocents } from "@/lib/issueDocent";
 import type { IssueDocentListItem } from "@/types/issueDocent";
 import { SectorCompaniesMeta } from "@/components/SectorCompaniesMeta";
+
+const HOME_SECTION_ITEM_LIMIT = 4;
+const HOME_INTEREST_FETCH_LIMIT = 20;
+const HOME_INTEREST_MAX_SCAN = 60;
 
 function formatCollectedAt(value: string) {
   return new Intl.DateTimeFormat("ko-KR", {
@@ -50,11 +55,13 @@ function IssueSection({
   description,
   items,
   empty,
+  loading = false,
 }: {
   title: string;
   description: string;
   items: IssueDocentListItem[];
   empty?: string;
+  loading?: boolean;
 }) {
   return (
     <section className="py-8">
@@ -65,10 +72,21 @@ function IssueSection({
         </div>
       </div>
       {items.length > 0 ? (
-        <div className="grid grid-cols-2 gap-4">
-          {items.map((item, index) => (
-            <IssueCard key={item.id} item={item} featured={index === 0} />
-          ))}
+        <>
+          <div className="grid grid-cols-2 gap-4">
+            {items.map((item, index) => (
+              <IssueCard key={item.id} item={item} featured={index === 0} />
+            ))}
+          </div>
+          {loading && (
+            <p className="mt-3 text-[13px] font-medium text-[#7a7a7a]">
+              관심 이슈를 더 찾고 있어요.
+            </p>
+          )}
+        </>
+      ) : loading ? (
+        <div className="rounded-lg border border-dashed border-[#e0e0e0] bg-[#fbfcfd] p-7 text-[15px] leading-6 text-[#7a7a7a]">
+          관심 이슈를 더 찾고 있어요.
         </div>
       ) : (
         <div className="rounded-lg border border-dashed border-[#e0e0e0] bg-[#fbfcfd] p-7 text-[15px] leading-6 text-[#7a7a7a]">
@@ -79,12 +97,97 @@ function IssueSection({
   );
 }
 
-export function HomeIssueSections({ items }: { items: IssueDocentListItem[] }) {
+export function HomeIssueSections({
+  initialItems,
+  total,
+}: {
+  initialItems: IssueDocentListItem[];
+  total: number;
+}) {
   const { profile } = useInterestProfile();
-  const personalizedItems = useMemo(
-    () => items.filter((item) => matchesInterest(item, profile)),
-    [items, profile],
+  const interestKey = useMemo(
+    () => `${profile.sectors.join("|")}::${profile.companies.join("|")}`,
+    [profile.companies, profile.sectors],
   );
+  const [interestPool, setInterestPool] = useState(initialItems);
+  const [nextInterestOffset, setNextInterestOffset] = useState(initialItems.length);
+  const [interestSearchComplete, setInterestSearchComplete] = useState(false);
+  const [loadingMoreInterests, setLoadingMoreInterests] = useState(false);
+  const hasInterestProfile = profile.sectors.length > 0 || profile.companies.length > 0;
+  const personalizedItems = useMemo(
+    () =>
+      interestPool
+        .filter((item) => matchesInterest(item, profile))
+        .slice(0, HOME_SECTION_ITEM_LIMIT),
+    [interestPool, profile],
+  );
+  const marketItems = useMemo(
+    () => initialItems.slice(0, HOME_SECTION_ITEM_LIMIT),
+    [initialItems],
+  );
+
+  useEffect(() => {
+    setInterestPool(initialItems);
+    setNextInterestOffset(initialItems.length);
+    setInterestSearchComplete(false);
+    setLoadingMoreInterests(false);
+  }, [initialItems, interestKey]);
+
+  useEffect(() => {
+    if (!hasInterestProfile) return;
+    if (loadingMoreInterests || interestSearchComplete) return;
+    if (personalizedItems.length >= HOME_SECTION_ITEM_LIMIT) return;
+
+    const scanLimit = Math.min(total, HOME_INTEREST_MAX_SCAN);
+    if (nextInterestOffset >= scanLimit) {
+      setInterestSearchComplete(true);
+      return;
+    }
+
+    let ignore = false;
+    const loadMoreInterests = async () => {
+      setLoadingMoreInterests(true);
+
+      try {
+        const response = await getIssueDocents({
+          limit: HOME_INTEREST_FETCH_LIMIT,
+          offset: nextInterestOffset,
+        });
+
+        if (ignore) return;
+
+        setInterestPool((currentItems) => {
+          const seenIds = new Set(currentItems.map((item) => item.id));
+          const newItems = response.items.filter((item) => !seenIds.has(item.id));
+          return [...currentItems, ...newItems];
+        });
+        setNextInterestOffset(nextInterestOffset + response.items.length);
+        setInterestSearchComplete(
+          response.items.length === 0 || nextInterestOffset + response.items.length >= scanLimit,
+        );
+      } catch (error) {
+        if (!ignore) {
+          console.error("[HomeIssueSections] 관심 이슈 추가 조회 실패:", error);
+          setInterestSearchComplete(true);
+        }
+      } finally {
+        if (!ignore) setLoadingMoreInterests(false);
+      }
+    };
+
+    void loadMoreInterests();
+
+    return () => {
+      ignore = true;
+    };
+  }, [
+    hasInterestProfile,
+    interestSearchComplete,
+    loadingMoreInterests,
+    nextInterestOffset,
+    personalizedItems.length,
+    total,
+  ]);
 
   return (
     <>
@@ -92,13 +195,14 @@ export function HomeIssueSections({ items }: { items: IssueDocentListItem[] }) {
         title="내 관심 이슈"
         description="온보딩에서 고른 섹터와 종목에 맞춰 먼저 보여드려요."
         items={personalizedItems}
+        loading={loadingMoreInterests}
         empty="아직 선택한 관심사와 딱 맞는 이슈가 없어요. 우측 내 관심에서 관심사를 넓히거나 아래 전체 시장 이슈를 확인해보세요."
       />
 
       <IssueSection
         title="오늘의 전체 시장 이슈"
         description="관심사 밖의 흐름도 놓치지 않도록 함께 모아두었습니다."
-        items={items}
+        items={marketItems}
         empty="표시할 이슈가 아직 없습니다."
       />
     </>

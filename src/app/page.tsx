@@ -3,7 +3,7 @@ import { HomeIssueSections } from "@/components/HomeIssueSections";
 import { getIssueDocents } from "@/lib/issueDocent";
 
 export default async function Home() {
-  const response = await getIssueDocents({ limit: 30, offset: 0 });
+  const response = await getIssueDocents({ limit: 20, offset: 0 });
 
   return (
     <div className="min-h-screen min-w-[1376px] bg-[#ffffff] text-[#1d1d1f]">
@@ -21,7 +21,7 @@ export default async function Home() {
           </div>
         </section>
 
-        <HomeIssueSections items={response.items} />
+        <HomeIssueSections initialItems={response.items} total={response.total} />
       </main>
 
       <footer className="border-t border-[#e0e0e0] bg-[#ffffff] px-8 py-10 text-[13px] leading-6 text-[#7a7a7a]">
