@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -42,11 +43,13 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(() =>
-    typeof window !== "undefined" ? readCachedUser() : null
-  );
+  // null로 시작해 SSR·hydration 불일치를 방지하고, useLayoutEffect에서 즉시 복원
+  const [user, setUser] = useState<User | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [showModal, setShowModal] = useState(false);
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useLayoutEffect(() => { setUser(readCachedUser()); }, []);
 
   const updateUser = useCallback((data: User | null) => {
     setUser(data);
