@@ -9,7 +9,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { flushSync } from "react-dom";
 import type { User } from "@/types/jangdokdae";
 import { LoginModal } from "@/app/auth/LoginModal";
 import { apiFetch, apiFetchJson } from "@/lib/api";
@@ -84,11 +83,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const controller = new AbortController();
       bfcacheControllerRef.current = controller;
 
-      // flushSync로 React concurrent scheduler 우회 — bfcache 복원 후 즉시 UI 반영
-      flushSync(() => {
-        setUser(readCachedUser());
-        setShowModal(false);
-      });
+      setUser(readCachedUser());
+      setShowModal(false);
 
       apiFetchJson<User>("/api/v1/auth/me", { signal: controller.signal })
         .then((data: User) => updateUser(data))
