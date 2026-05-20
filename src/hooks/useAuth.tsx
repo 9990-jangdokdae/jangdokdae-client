@@ -46,6 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [securityAlert, setSecurityAlert] = useState<string | null>(null);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useLayoutEffect(() => { setUser(readCachedUser()); }, []);
@@ -73,6 +74,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => controller.abort();
   }, [updateUser]);
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      setSecurityAlert((e as CustomEvent<string>).detail);
+    };
+    window.addEventListener("auth:security-threat", handler);
+    return () => window.removeEventListener("auth:security-threat", handler);
+  }, []);
+
   // bfcache 복원 시: localStorage에서 즉시 표시 후 백그라운드 재검증
   useEffect(() => {
     const handlePageShow = (e: PageTransitionEvent) => {
@@ -96,11 +105,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("pageshow", handlePageShow);
   }, [updateUser]);
 
-  const logout = async () => {
-    await apiFetch("/api/v1/auth/logout", { method: "POST" }).catch((err) =>
+  const logout = () => {
+    updateUser(null);
+    apiFetch("/api/v1/auth/logout", { method: "POST" }).catch((err) =>
       console.error("[Auth] /api/v1/auth/logout 실패:", err),
     );
-    updateUser(null);
   };
 
   return (
@@ -115,6 +124,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     >
       {children}
       {showModal && <LoginModal onClose={() => setShowModal(false)} />}
+      {securityAlert && (
+        <div
+          role="alert"
+          className="fixed left-1/2 top-4 z-[100] flex -translate-x-1/2 items-center gap-3 rounded-lg bg-red-600 px-4 py-3 text-sm text-white shadow-lg"
+        >
+          <span>{securityAlert}</span>
+          <button
+            type="button"
+            aria-label="닫기"
+            className="shrink-0 opacity-70 hover:opacity-100"
+            onClick={() => setSecurityAlert(null)}
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </AuthContext.Provider>
   );
 }
