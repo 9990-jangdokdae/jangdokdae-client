@@ -23,7 +23,7 @@ function IssueCard({ item, featured = false }: { item: IssueDocentListItem; feat
   return (
     <Link
       href={`/issue-docent/${item.id}`}
-      className={`group block rounded-lg border border-[#e0e0e0] bg-white p-5 transition hover:-translate-y-0.5 hover:border-[#c96442] ${
+      className={`group flex h-full flex-col rounded-lg border border-[#e0e0e0] bg-white p-5 transition hover:-translate-y-0.5 hover:border-[#c96442] ${
         featured ? "min-h-[230px]" : "min-h-[190px]"
       }`}
     >
@@ -37,7 +37,7 @@ function IssueCard({ item, featured = false }: { item: IssueDocentListItem; feat
       </h3>
       <p className="ko-body mt-4 line-clamp-3 text-[15px] leading-6 text-[#1d1d1f]">{item.teaser}</p>
       <SectorCompaniesMeta groups={item.sector_companies} />
-      <div className="mt-5 flex items-center text-[14px] font-semibold text-[#c96442]">
+      <div className="mt-auto flex items-center pt-5 text-[14px] font-semibold text-[#c96442]">
         쉽게 읽기
         <ChevronRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
       </div>
