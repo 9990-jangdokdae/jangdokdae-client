@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Header } from "@/components/Header";
-import { InterestRail } from "@/components/InterestRail";
 import { SectorCompaniesMeta } from "@/components/SectorCompaniesMeta";
 import { formatIssueDocentDateTime, getIssueDocents } from "@/lib/issueDocent";
 import type { IssueDocentListItem } from "@/types/issueDocent";
@@ -31,7 +30,6 @@ export default async function IssueDocentPage() {
   return (
     <div className="min-h-screen min-w-[1376px] bg-white text-[#1d1d1f]">
       <Header activeIndex={1} />
-      <InterestRail />
       <main className="mx-[100px] w-[1176px] bg-white pb-16 pt-4">
         <h1 className="text-[28px] font-semibold">이슈 도슨트</h1>
         <div className="mt-6">

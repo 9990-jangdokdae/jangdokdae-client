@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Activity, BookOpenCheck, Check, Cpu, ExternalLink, Gamepad2, X } from "lucide-react";
 import { Header } from "@/components/Header";
-import { InterestRail } from "@/components/InterestRail";
 import { SectorCompaniesMeta } from "@/components/SectorCompaniesMeta";
 import { AppModal } from "@/components/ui/AppModal";
 import {
@@ -468,7 +467,6 @@ export function IssueDocentDetailClient({
   return (
     <div className="min-h-screen bg-white text-[#1d1d1f]">
       <Header activeIndex={1} />
-      <InterestRail />
 
       <main className="mx-auto max-w-[1280px] bg-white px-6 pb-24 pt-8 lg:px-8">
         <div className="grid items-start gap-10 xl:grid-cols-[minmax(0,1fr)_380px]">
