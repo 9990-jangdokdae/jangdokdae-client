@@ -8,7 +8,7 @@ import type { IssueDocentListItem } from "@/types/issueDocent";
 function IssueDocentFeedRow({ item }: { item: IssueDocentListItem }) {
   return (
     <Link
-      className="block border-b border-[#e0e0e0] p-5 transition hover:bg-[#fbfcfd]"
+      className="group block border-b border-[#e0e0e0] p-5 transition hover:bg-[#fbfcfd]"
       href={`/issue-docent/${item.id}`}
     >
       <h2 className="ko-title text-[20px] font-semibold leading-7 text-[#1d1d1f]">
