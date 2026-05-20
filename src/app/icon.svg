@@ -1,0 +1,25 @@
+<svg width="36" height="40" viewBox="0 0 36 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="jarGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e0845e" />
+      <stop offset="60%" stop-color="#c96442" />
+      <stop offset="100%" stop-color="#8b3320" />
+    </linearGradient>
+    <linearGradient id="lidGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#d97550" />
+      <stop offset="100%" stop-color="#9e3d22" />
+    </linearGradient>
+  </defs>
+  <!-- 그림자 -->
+  <ellipse cx="18" cy="39.5" rx="9.5" ry="1.2" fill="#8b3320" opacity="0.15" />
+  <!-- 항아리 몸통 -->
+  <path d="M14 8 C9 9.5 3.5 15 3.5 22 C3.5 30.5 9 37 15 38 L21 38 C27 37 32.5 30.5 32.5 22 C32.5 15 27 9.5 22 8 Z" fill="url(#jarGrad)" />
+  <!-- 뚜껑 -->
+  <path d="M12.5 8.5 C12.5 6 15 4.5 18 4.5 C21 4.5 23.5 6 23.5 8.5 Z" fill="url(#lidGrad)" />
+  <!-- 손잡이 -->
+  <circle cx="18" cy="3.2" r="1.8" fill="url(#lidGrad)" />
+  <!-- 광택 하이라이트 -->
+  <ellipse cx="11.5" cy="18" rx="2.8" ry="5" fill="white" opacity="0.15" transform="rotate(-15 11.5 18)" />
+  <!-- 어깨 라인 -->
+  <path d="M11 13 Q18 11 25 13" stroke="white" stroke-width="1.2" stroke-linecap="round" fill="none" opacity="0.22" />
+</svg>
