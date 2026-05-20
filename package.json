@@ -19,7 +19,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node --import tsx --test src/lib/api.test.ts",
+    "test": "node --import tsx --test src/lib/api.test.ts src/lib/pagination.test.ts src/components/SectorCompaniesMeta.test.ts",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "check": "npm run lint && npm run typecheck && npm run build"

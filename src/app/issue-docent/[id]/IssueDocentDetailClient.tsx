@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Activity, BookOpenCheck, Check, Cpu, ExternalLink, Gamepad2, X } from "lucide-react";
+import { Activity, Check, Cpu, ExternalLink, Gamepad2, X } from "lucide-react";
 import { Header } from "@/components/Header";
-import { InterestRail } from "@/components/InterestRail";
 import { SectorCompaniesMeta } from "@/components/SectorCompaniesMeta";
 import { AppModal } from "@/components/ui/AppModal";
 import {
@@ -468,17 +467,12 @@ export function IssueDocentDetailClient({
   return (
     <div className="min-h-screen bg-white text-[#1d1d1f]">
       <Header activeIndex={1} />
-      <InterestRail />
 
       <main className="mx-auto max-w-[1280px] bg-white px-6 pb-24 pt-8 lg:px-8">
         <div className="grid items-start gap-10 xl:grid-cols-[minmax(0,1fr)_380px]">
           <article className="min-w-0 xl:max-w-[770px]">
             <header className="border-b border-[#e0e0e0] pb-8">
-              <p className="flex items-center gap-2 text-[14px] font-semibold text-[#c96442]">
-                <BookOpenCheck className="h-4 w-4" />
-                이슈 도슨트
-              </p>
-              <div className="mt-4 flex items-start justify-between gap-6">
+              <div className="flex items-start justify-between gap-6">
                 <h1 className="ko-title text-[34px] font-normal leading-[1.15] text-[#1d1d1f]">
                   {issueDocent.title}
                 </h1>

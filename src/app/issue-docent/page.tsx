@@ -1,14 +1,22 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Header } from "@/components/Header";
-import { InterestRail } from "@/components/InterestRail";
 import { SectorCompaniesMeta } from "@/components/SectorCompaniesMeta";
 import { formatIssueDocentDateTime, getIssueDocents } from "@/lib/issueDocent";
+import {
+  clampPage,
+  getOffsetForPage,
+  getPaginationPages,
+  normalizePageParam,
+} from "@/lib/pagination";
 import type { IssueDocentListItem } from "@/types/issueDocent";
+
+const ISSUE_DOCENT_PAGE_SIZE = 10;
 
 function IssueDocentFeedRow({ item }: { item: IssueDocentListItem }) {
   return (
     <Link
-      className="block border-b border-[#e0e0e0] p-5 transition hover:bg-[#fbfcfd]"
+      className="group block border-b border-[#e0e0e0] p-5 transition hover:bg-[#fbfcfd]"
       href={`/issue-docent/${item.id}`}
     >
       <h2 className="ko-title text-[20px] font-semibold leading-7 text-[#1d1d1f]">
@@ -25,15 +33,144 @@ function IssueDocentFeedRow({ item }: { item: IssueDocentListItem }) {
   );
 }
 
-export default async function IssueDocentPage() {
-  const response = await getIssueDocents({ limit: 20, offset: 0 });
+function pageHref(page: number) {
+  return `/issue-docent?page=${page}`;
+}
+
+function PaginationLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      className="grid h-9 min-w-9 place-items-center rounded-md border border-[#e0e0e0] px-3 text-[14px] font-semibold text-[#1d1d1f] transition hover:border-[#c96442] hover:text-[#b65335]"
+      href={href}
+    >
+      {children}
+    </Link>
+  );
+}
+
+function PaginationDisabled({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="grid h-9 min-w-9 place-items-center rounded-md border border-[#eeeeee] px-3 text-[14px] font-semibold text-[#b8b8b8]">
+      {children}
+    </span>
+  );
+}
+
+function IssueDocentPagination({
+  currentPage,
+  totalPages,
+}: {
+  currentPage: number;
+  totalPages: number;
+}) {
+  if (totalPages <= 1) return null;
+
+  const pages = getPaginationPages({ currentPage, totalPages });
+  const previousPage = Math.max(currentPage - 1, 1);
+  const nextPage = Math.min(currentPage + 1, totalPages);
+
+  return (
+    <nav
+      aria-label="이슈 도슨트 페이지"
+      className="mt-8 flex items-center justify-between gap-4"
+    >
+      <div className="flex items-center gap-2">
+        {currentPage === 1 ? (
+          <PaginationDisabled>처음</PaginationDisabled>
+        ) : (
+          <PaginationLink href={pageHref(1)}>처음</PaginationLink>
+        )}
+        {currentPage === 1 ? (
+          <PaginationDisabled>이전</PaginationDisabled>
+        ) : (
+          <PaginationLink href={pageHref(previousPage)}>이전</PaginationLink>
+        )}
+        {pages.map((page) =>
+          page === currentPage ? (
+            <span
+              key={page}
+              aria-current="page"
+              className="grid h-9 min-w-9 place-items-center rounded-md bg-[#1d1d1f] px-3 text-[14px] font-semibold text-white"
+            >
+              {page}
+            </span>
+          ) : (
+            <PaginationLink key={page} href={pageHref(page)}>
+              {page}
+            </PaginationLink>
+          ),
+        )}
+        {currentPage === totalPages ? (
+          <PaginationDisabled>다음</PaginationDisabled>
+        ) : (
+          <PaginationLink href={pageHref(nextPage)}>다음</PaginationLink>
+        )}
+        {currentPage === totalPages ? (
+          <PaginationDisabled>끝</PaginationDisabled>
+        ) : (
+          <PaginationLink href={pageHref(totalPages)}>끝</PaginationLink>
+        )}
+      </div>
+
+      <form action="/issue-docent" className="flex items-center gap-2 text-[14px] text-[#7a7a7a]">
+        <label htmlFor="issue-docent-page-input" className="font-semibold text-[#1d1d1f]">
+          페이지
+        </label>
+        <input
+          className="h-9 w-16 rounded-md border border-[#e0e0e0] bg-white px-3 text-center text-[14px] font-semibold text-[#1d1d1f] outline-none transition focus:border-[#c96442] focus:ring-2 focus:ring-[#c96442]/20"
+          defaultValue={currentPage}
+          id="issue-docent-page-input"
+          max={totalPages}
+          min={1}
+          name="page"
+          type="number"
+        />
+        <span>/ {totalPages}</span>
+        <button
+          className="h-9 rounded-md border border-[#e0e0e0] bg-white px-4 text-[14px] font-semibold text-[#1d1d1f] transition hover:border-[#c96442] hover:text-[#b65335]"
+          type="submit"
+        >
+          이동
+        </button>
+      </form>
+    </nav>
+  );
+}
+
+interface IssueDocentPageProps {
+  searchParams?: Promise<{
+    page?: string | string[];
+  }>;
+}
+
+export default async function IssueDocentPage({ searchParams }: IssueDocentPageProps) {
+  const resolvedSearchParams = await searchParams;
+  const rawPage = resolvedSearchParams?.page;
+  const requestedPage = normalizePageParam(rawPage);
+  const hasInvalidPageParam =
+    rawPage !== undefined &&
+    (Array.isArray(rawPage) ? rawPage[0] : rawPage) !== String(requestedPage);
+  const response = await getIssueDocents({
+    limit: ISSUE_DOCENT_PAGE_SIZE,
+    offset: getOffsetForPage(requestedPage, ISSUE_DOCENT_PAGE_SIZE),
+  });
+  const totalPages = Math.max(1, Math.ceil(response.total / ISSUE_DOCENT_PAGE_SIZE));
+  const currentPage = clampPage(requestedPage, totalPages);
+
+  if (hasInvalidPageParam || currentPage !== requestedPage) {
+    redirect(pageHref(currentPage));
+  }
 
   return (
     <div className="min-h-screen min-w-[1376px] bg-white text-[#1d1d1f]">
       <Header activeIndex={1} />
-      <InterestRail />
       <main className="mx-[100px] w-[1176px] bg-white pb-16 pt-4">
-        <h1 className="text-[28px] font-semibold">이슈 도슨트</h1>
         <div className="mt-6">
           {response.items.length > 0 ? (
             response.items.map((item) => <IssueDocentFeedRow key={item.id} item={item} />)
@@ -43,6 +180,7 @@ export default async function IssueDocentPage() {
             </div>
           )}
         </div>
+        <IssueDocentPagination currentPage={currentPage} totalPages={totalPages} />
       </main>
     </div>
   );
