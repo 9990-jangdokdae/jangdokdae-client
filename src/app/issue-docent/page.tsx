@@ -2,7 +2,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Header } from "@/components/Header";
 import { SectorCompaniesMeta } from "@/components/SectorCompaniesMeta";
-import { formatIssueDocentDateTime, getIssueDocents } from "@/lib/issueDocent";
+import {
+  formatIssueDocentDateTime,
+  getIssueDocents,
+  ISSUE_DOCENT_SEARCH_MAX_LENGTH,
+} from "@/lib/issueDocent";
 import {
   clampPage,
   getOffsetForPage,
@@ -33,8 +37,10 @@ function IssueDocentFeedRow({ item }: { item: IssueDocentListItem }) {
   );
 }
 
-function pageHref(page: number) {
-  return `/issue-docent?page=${page}`;
+function pageHref(page: number, searchQuery?: string) {
+  const searchParams = new URLSearchParams({ page: String(page) });
+  if (searchQuery) searchParams.set("q", searchQuery);
+  return `/issue-docent?${searchParams.toString()}`;
 }
 
 function PaginationLink({
@@ -65,9 +71,11 @@ function PaginationDisabled({ children }: { children: React.ReactNode }) {
 function IssueDocentPagination({
   currentPage,
   totalPages,
+  searchQuery,
 }: {
   currentPage: number;
   totalPages: number;
+  searchQuery?: string;
 }) {
   if (totalPages <= 1) return null;
 
@@ -84,12 +92,12 @@ function IssueDocentPagination({
         {currentPage === 1 ? (
           <PaginationDisabled>처음</PaginationDisabled>
         ) : (
-          <PaginationLink href={pageHref(1)}>처음</PaginationLink>
+          <PaginationLink href={pageHref(1, searchQuery)}>처음</PaginationLink>
         )}
         {currentPage === 1 ? (
           <PaginationDisabled>이전</PaginationDisabled>
         ) : (
-          <PaginationLink href={pageHref(previousPage)}>이전</PaginationLink>
+          <PaginationLink href={pageHref(previousPage, searchQuery)}>이전</PaginationLink>
         )}
         {pages.map((page) =>
           page === currentPage ? (
@@ -101,7 +109,7 @@ function IssueDocentPagination({
               {page}
             </span>
           ) : (
-            <PaginationLink key={page} href={pageHref(page)}>
+            <PaginationLink key={page} href={pageHref(page, searchQuery)}>
               {page}
             </PaginationLink>
           ),
@@ -109,16 +117,17 @@ function IssueDocentPagination({
         {currentPage === totalPages ? (
           <PaginationDisabled>다음</PaginationDisabled>
         ) : (
-          <PaginationLink href={pageHref(nextPage)}>다음</PaginationLink>
+          <PaginationLink href={pageHref(nextPage, searchQuery)}>다음</PaginationLink>
         )}
         {currentPage === totalPages ? (
           <PaginationDisabled>끝</PaginationDisabled>
         ) : (
-          <PaginationLink href={pageHref(totalPages)}>끝</PaginationLink>
+          <PaginationLink href={pageHref(totalPages, searchQuery)}>끝</PaginationLink>
         )}
       </div>
 
       <form action="/issue-docent" className="flex items-center gap-2 text-[14px] text-[#7a7a7a]">
+        {searchQuery && <input name="q" type="hidden" value={searchQuery} />}
         <label htmlFor="issue-docent-page-input" className="font-semibold text-[#1d1d1f]">
           페이지
         </label>
@@ -146,12 +155,18 @@ function IssueDocentPagination({
 interface IssueDocentPageProps {
   searchParams?: Promise<{
     page?: string | string[];
+    q?: string | string[];
   }>;
 }
 
 export default async function IssueDocentPage({ searchParams }: IssueDocentPageProps) {
   const resolvedSearchParams = await searchParams;
   const rawPage = resolvedSearchParams?.page;
+  const rawQuery = resolvedSearchParams?.q;
+  const searchQuery =
+    (Array.isArray(rawQuery) ? rawQuery[0] : rawQuery)
+      ?.trim()
+      .slice(0, ISSUE_DOCENT_SEARCH_MAX_LENGTH) || undefined;
   const requestedPage = normalizePageParam(rawPage);
   const hasInvalidPageParam =
     rawPage !== undefined &&
@@ -159,28 +174,56 @@ export default async function IssueDocentPage({ searchParams }: IssueDocentPageP
   const response = await getIssueDocents({
     limit: ISSUE_DOCENT_PAGE_SIZE,
     offset: getOffsetForPage(requestedPage, ISSUE_DOCENT_PAGE_SIZE),
+    q: searchQuery,
   });
   const totalPages = Math.max(1, Math.ceil(response.total / ISSUE_DOCENT_PAGE_SIZE));
   const currentPage = clampPage(requestedPage, totalPages);
 
   if (hasInvalidPageParam || currentPage !== requestedPage) {
-    redirect(pageHref(currentPage));
+    redirect(pageHref(currentPage, searchQuery));
   }
 
   return (
     <div className="min-h-screen min-w-[1376px] bg-white text-[#1d1d1f]">
-      <Header activeIndex={1} />
+      <Header activeIndex={1} searchQuery={searchQuery} />
       <main className="mx-[100px] w-[1176px] bg-white pb-16 pt-4">
+        <div className="flex items-end justify-between gap-6">
+          <div>
+            <h1 className="text-[28px] font-semibold">이슈 도슨트</h1>
+            {searchQuery ? (
+              <p className="mt-2 text-[14px] text-[#7a7a7a]">
+                <span className="font-semibold text-[#1d1d1f]">“{searchQuery}”</span> 검색 결과
+                · 총 {response.total.toLocaleString("ko-KR")}개 이슈
+              </p>
+            ) : (
+              <p className="mt-2 text-[14px] text-[#7a7a7a]">
+                총 {response.total.toLocaleString("ko-KR")}개 이슈
+              </p>
+            )}
+          </div>
+          {searchQuery && (
+            <Link
+              className="rounded-md border border-[#e0e0e0] px-4 py-2 text-[14px] font-semibold text-[#1d1d1f] transition hover:border-[#c96442] hover:text-[#b65335]"
+              href="/issue-docent"
+            >
+              전체 이슈 보기
+            </Link>
+          )}
+        </div>
         <div className="mt-6">
           {response.items.length > 0 ? (
             response.items.map((item) => <IssueDocentFeedRow key={item.id} item={item} />)
           ) : (
             <div className="rounded-lg border border-dashed border-[#e0e0e0] bg-[#f7f8fa] px-8 py-10 text-[15px] text-[#7a7a7a]">
-              아직 생성된 이슈 도슨트가 없어요.
+              {searchQuery ? "검색 결과가 없어요." : "아직 생성된 이슈 도슨트가 없어요."}
             </div>
           )}
         </div>
-        <IssueDocentPagination currentPage={currentPage} totalPages={totalPages} />
+        <IssueDocentPagination
+          currentPage={currentPage}
+          searchQuery={searchQuery}
+          totalPages={totalPages}
+        />
       </main>
     </div>
   );

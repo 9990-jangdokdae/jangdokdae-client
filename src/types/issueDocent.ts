@@ -7,6 +7,18 @@ export interface IssueDocentListResponse {
   offset: number;
 }
 
+export type IssueDocentSearchSuggestionType = "issue" | "company" | "sector";
+
+export interface IssueDocentSearchSuggestion {
+  type: IssueDocentSearchSuggestionType;
+  label: string;
+  query: string;
+}
+
+export interface IssueDocentSearchSuggestionsResponse {
+  suggestions: IssueDocentSearchSuggestion[];
+}
+
 export interface IssueDocentListItem {
   id: number;
   cluster_id: number;
