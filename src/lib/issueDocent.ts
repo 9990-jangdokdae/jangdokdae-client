@@ -6,6 +6,7 @@ import type {
 import type {
   IssueDocentDetailResponse,
   IssueDocentListResponse,
+  IssueDocentSearchSuggestionsResponse,
 } from "@/types/issueDocent";
 import type {
   AnalysisSection,
@@ -16,22 +17,52 @@ import type {
 } from "@/types/jangdokdae";
 
 export const issueDocentListPath = "/api/v1/contents/issue-docent";
+export const ISSUE_DOCENT_SEARCH_MAX_LENGTH = 50;
+
+export function issueDocentSearchSuggestionsPath() {
+  return `${issueDocentListPath}/search-suggestions`;
+}
 
 export function issueDocentDetailPath(id: string | number) {
   return `/api/v1/contents/issue-docent/${id}`;
 }
 
-export async function getIssueDocents(params: { limit?: number; offset?: number } = {}) {
+export async function getIssueDocents(
+  params: { limit?: number; offset?: number; q?: string } = {},
+) {
   const limit = params.limit ?? 20;
   const offset = params.offset ?? 0;
   const searchParams = new URLSearchParams({
     limit: String(limit),
     offset: String(offset),
   });
+  const searchQuery = params.q?.trim().slice(0, ISSUE_DOCENT_SEARCH_MAX_LENGTH);
+
+  if (searchQuery) {
+    searchParams.set("q", searchQuery);
+  }
 
   return apiFetchJson<IssueDocentListResponse>(
     `${issueDocentListPath}?${searchParams.toString()}`,
     { cache: "no-store" },
+  );
+}
+
+export async function getIssueDocentSearchSuggestions(
+  query: string,
+  options?: { signal?: AbortSignal },
+) {
+  const searchQuery = query.trim().slice(0, ISSUE_DOCENT_SEARCH_MAX_LENGTH);
+  if (!searchQuery) return { suggestions: [] };
+
+  const searchParams = new URLSearchParams({
+    q: searchQuery,
+    limit: "8",
+  });
+
+  return apiFetchJson<IssueDocentSearchSuggestionsResponse>(
+    `${issueDocentSearchSuggestionsPath()}?${searchParams.toString()}`,
+    { cache: "no-store", signal: options?.signal },
   );
 }
 
