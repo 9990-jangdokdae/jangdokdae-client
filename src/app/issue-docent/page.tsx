@@ -171,19 +171,6 @@ export default async function IssueDocentPage({ searchParams }: IssueDocentPageP
     <div className="min-h-screen min-w-[1376px] bg-white text-[#1d1d1f]">
       <Header activeIndex={1} />
       <main className="mx-[100px] w-[1176px] bg-white pb-16 pt-4">
-        <div className="flex items-end justify-between gap-6">
-          <div>
-            <h1 className="text-[28px] font-semibold">이슈 도슨트</h1>
-            <p className="mt-2 text-[14px] text-[#7a7a7a]">
-              총 {response.total.toLocaleString("ko-KR")}개 이슈
-            </p>
-          </div>
-          {response.total > 0 && (
-            <p className="text-[14px] font-medium text-[#7a7a7a]">
-              {currentPage} / {totalPages} 페이지
-            </p>
-          )}
-        </div>
         <div className="mt-6">
           {response.items.length > 0 ? (
             response.items.map((item) => <IssueDocentFeedRow key={item.id} item={item} />)
