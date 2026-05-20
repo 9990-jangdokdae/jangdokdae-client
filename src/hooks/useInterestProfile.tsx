@@ -29,36 +29,57 @@ interface InterestProfileContextValue {
 
 const InterestProfileContext = createContext<InterestProfileContextValue | null>(null);
 const interestProfileChangedEvent = "jangdokdae.interest-profile.changed";
+let cachedProfileJson: string | null = null;
+let cachedProfileSnapshot: InterestProfile = defaultInterestProfile;
 
-function readLocalProfile(): InterestProfile {
-  if (typeof window === "undefined") return defaultInterestProfile;
-
+function syncCachedProfileFromStorage(): boolean {
   try {
     const stored = window.localStorage.getItem(interestStorageKey);
-    if (stored) return JSON.parse(stored) as InterestProfile;
+    if (!stored) {
+      const changed = cachedProfileJson !== null || cachedProfileSnapshot !== defaultInterestProfile;
+      cachedProfileJson = null;
+      cachedProfileSnapshot = defaultInterestProfile;
+      return changed;
+    }
+
+    if (stored === cachedProfileJson) return false;
+
+    cachedProfileJson = stored;
+    cachedProfileSnapshot = JSON.parse(stored) as InterestProfile;
+    return true;
   } catch (err) {
     console.warn("[InterestProfile] localStorage 파싱 실패:", err);
   }
-  return defaultInterestProfile;
+  return false;
+}
+
+function getCachedProfileSnapshot(): InterestProfile {
+  return cachedProfileSnapshot;
 }
 
 function writeLocalProfile(profile: InterestProfile): void {
-  window.localStorage.setItem(interestStorageKey, JSON.stringify(profile));
+  const nextProfileJson = JSON.stringify(profile);
+  cachedProfileJson = nextProfileJson;
+  cachedProfileSnapshot = profile;
+  window.localStorage.setItem(interestStorageKey, nextProfileJson);
   window.dispatchEvent(new Event(interestProfileChangedEvent));
 }
 
 function clearLocalProfile(): void {
+  cachedProfileJson = null;
+  cachedProfileSnapshot = defaultInterestProfile;
   window.localStorage.removeItem(interestStorageKey);
   window.dispatchEvent(new Event(interestProfileChangedEvent));
 }
 
 function subscribeToLocalProfile(onStoreChange: () => void) {
   const handleStorage = (event: StorageEvent) => {
-    if (event.key === interestStorageKey) onStoreChange();
+    if (event.key === interestStorageKey && syncCachedProfileFromStorage()) onStoreChange();
   };
 
   window.addEventListener(interestProfileChangedEvent, onStoreChange);
   window.addEventListener("storage", handleStorage);
+  if (syncCachedProfileFromStorage()) queueMicrotask(onStoreChange);
 
   return () => {
     window.removeEventListener(interestProfileChangedEvent, onStoreChange);
@@ -70,7 +91,7 @@ export function InterestProfileProvider({ children }: { children: React.ReactNod
   const { user, isLoggedIn, isLoading: authLoading } = useAuth();
   const profile = useSyncExternalStore(
     subscribeToLocalProfile,
-    readLocalProfile,
+    getCachedProfileSnapshot,
     () => defaultInterestProfile,
   );
   const prevIsLoggedIn = useRef<boolean | null>(null);
